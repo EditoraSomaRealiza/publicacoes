@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <title>Curado em Silêncio — Leia e Ouça</title>
+  <style>
+    :root{--green:#173f33;--green2:#245846;--gold:#d7ae4c;--paper:#fffdf7;--ink:#29251f;--muted:#746d62;--active:#fff0ad;--size:19px}
+    *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:#e9e5dc;color:var(--ink);font:var(--size)/1.72 Georgia,serif}
+    .top{position:sticky;top:0;z-index:10;background:linear-gradient(135deg,var(--green),var(--green2));color:#fff;box-shadow:0 3px 14px #0005}
+    .top-inner{max-width:900px;margin:auto;padding:10px 14px}.brand{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:7px}
+    .brand strong{font:700 15px/1.2 Arial,sans-serif}.brand span{color:#f4d981;font:12px Arial,sans-serif}audio{display:block;width:100%;height:42px}
+    .tools{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:7px;font:13px Arial,sans-serif}.tools select{min-width:220px;max-width:100%;flex:1}
+    select,button{border:1px solid #ffffff55;border-radius:7px;padding:8px 10px;font:inherit}button{cursor:pointer;color:#fff;background:#ffffff18}button:hover:not(:disabled){background:#ffffff2d}button:disabled{opacity:.42;cursor:not-allowed}
+    .font-buttons{display:flex;gap:4px}.font-buttons button{padding:6px 10px}.progress{height:3px;margin-top:8px;background:#ffffff25}.progress div{height:100%;width:0;background:var(--gold)}
+    main{max-width:900px;min-height:100vh;margin:auto;background:var(--paper);padding:38px clamp(20px,7vw,86px) 150px;box-shadow:0 0 25px #0002}
+    .block{margin:0 0 1.08em;padding:5px 10px;border-radius:7px;transition:background .22s,box-shadow .22s,transform .22s}.block.active{background:var(--active);box-shadow:0 0 0 2px #e1c253;transform:scale(1.008)}
+    .book{text-align:center;color:var(--green);font-weight:bold}.chapter{text-align:center;color:var(--gold);font:700 .85em Arial,sans-serif;letter-spacing:.12em;margin-top:10px}.title{text-align:center;color:var(--green);font-weight:bold;font-size:1.5em;line-height:1.25;margin-bottom:1.55em}
+    .subheading{color:var(--green);font-weight:bold;font-size:1.08em;margin-top:1.7em}.prayer{color:var(--green);font:700 1.1em Arial,sans-serif;margin-top:2.1em}.list-item{position:relative;margin-left:20px}.list-item:before{content:'•';position:absolute;left:-15px;color:var(--gold)}
+    .special-screen{text-align:center;color:var(--green);font-size:1.7em;font-weight:bold;margin-top:15vh}.special-note{text-align:center;color:var(--muted);font-style:italic}.chapter-status{text-align:center;color:var(--muted);font:14px Arial,sans-serif;margin:34px 0 14px}
+    .navigation{display:flex;justify-content:center;gap:10px}.navigation button{background:var(--green);border-color:var(--green);min-width:125px}.done{color:var(--green);font-weight:bold;text-align:center}
+    @media(max-width:600px){:root{--size:18px}.top-inner{padding:8px 10px}.brand span{display:none}.tools select{min-width:150px}main{padding:28px 18px 140px}.title{font-size:1.32em}}
+  </style>
+</head>
+<body>
+  <header class="top"><div class="top-inner">
+    <div class="brand"><strong>CURADO EM SILÊNCIO — LEIA E OUÇA</strong><span>Orando Já Publicações</span></div>
+    <audio id="audio" controls preload="metadata"></audio>
+    <div class="tools">
+      <select id="chapter" aria-label="Escolha uma parte"></select>
+      <label><input id="autoscroll" type="checkbox" checked> acompanhar texto</label>
+      <div class="font-buttons"><button id="smaller" title="Diminuir texto">A−</button><button id="larger" title="Aumentar texto">A+</button></div>
+    </div>
+    <div class="progress"><div id="progress"></div></div>
+  </div></header>
+  <main>
+    <section id="text"></section>
+    <p id="status" class="chapter-status"></p>
+    <div class="navigation"><button id="previous">← Anterior</button><button id="next" disabled>Próximo →</button></div>
+    <p id="done" class="done"></p>
+  </main>
+  <script src="dados-do-livro.js"></script>
+  <script>
+  (()=>{
+    const book=window.CURADO_BOOK, audio=document.querySelector('#audio'), area=document.querySelector('#text'), select=document.querySelector('#chapter');
+    const next=document.querySelector('#next'), previous=document.querySelector('#previous'), status=document.querySelector('#status'), done=document.querySelector('#done'), progress=document.querySelector('#progress');
+    let index=Number(localStorage.getItem('curado-item')||0), active=-1, font=Number(localStorage.getItem('curado-font')||19);
+    if(index<0||index>=book.items.length)index=0;document.documentElement.style.setProperty('--size',font+'px');
+    book.items.forEach((item,i)=>{const option=document.createElement('option');option.value=i;option.textContent=item.label;select.appendChild(option)});
+    const saved=()=>JSON.parse(localStorage.getItem('curado-times')||'{}'), save=(seconds)=>{const all=saved();all[book.items[index].key]=seconds;localStorage.setItem('curado-times',JSON.stringify(all));localStorage.setItem('curado-item',index)};
+    function render(newIndex,resume=true){index=Math.max(0,Math.min(book.items.length-1,newIndex));const item=book.items[index];active=-1;done.textContent='';area.innerHTML='';select.value=index;audio.src=item.audio;next.disabled=true;previous.disabled=index===0;
+      item.blocks.forEach((b,i)=>{const e=document.createElement('div');e.id='b-'+i;e.className='block '+b.type;e.textContent=b.text;e.dataset.i=i;area.appendChild(e)});
+      status.textContent=item.audio_only?'Faixa de áudio separada da leitura sincronizada.':'O próximo capítulo será liberado quando este áudio terminar.';
+      audio.addEventListener('loadedmetadata',function restore(){audio.removeEventListener('loadedmetadata',restore);const t=resume?(saved()[item.key]||0):0;if(t<audio.duration-2)audio.currentTime=t;update()}, {once:false});
+      window.scrollTo({top:0,behavior:'smooth'});localStorage.setItem('curado-item',index);
+    }
+    function update(){const item=book.items[index],ms=audio.currentTime*1000;progress.style.width=(audio.duration?audio.currentTime/audio.duration*100:0)+'%';let found=item.blocks.findIndex(b=>ms>=b.start_ms&&ms<b.end_ms);if(found<0&&ms>=item.blocks.at(-1).start_ms)found=item.blocks.length-1;if(found===active)return;document.querySelector('.active')?.classList.remove('active');active=found;if(found>=0){const e=document.querySelector('#b-'+found);e.classList.add('active');if(document.querySelector('#autoscroll').checked&&audio.currentTime>0)e.scrollIntoView({behavior:'smooth',block:'center'})}}
+    audio.addEventListener('timeupdate',()=>{update();if(Math.floor(audio.currentTime)%3===0)save(audio.currentTime)});audio.addEventListener('pause',()=>save(audio.currentTime));audio.addEventListener('seeked',update);
+    audio.addEventListener('ended',()=>{save(0);next.disabled=index>=book.items.length-1;done.textContent=index<book.items.length-1?'Parte concluída. Você já pode avançar.':'Audiolivro concluído.'});
+    next.addEventListener('click',()=>{if(!next.disabled)render(index+1,false)});previous.addEventListener('click',()=>render(index-1));select.addEventListener('change',()=>render(Number(select.value)));
+    document.querySelector('#larger').addEventListener('click',()=>{font=Math.min(28,font+1);document.documentElement.style.setProperty('--size',font+'px');localStorage.setItem('curado-font',font)});
+    document.querySelector('#smaller').addEventListener('click',()=>{font=Math.max(15,font-1);document.documentElement.style.setProperty('--size',font+'px');localStorage.setItem('curado-font',font)});
+    render(index);
+  })();
+  </script>
+</body>
+</html>
